@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, UserRead
+from app.schemas.user import UserCreate, UserUpdate, UserRead, UserCreateGoogle
 from typing import Optional
 from app.core.security import get_password_hash, verify_password
 
@@ -9,9 +9,21 @@ class UserCRUD:
         db_user = User(
             email = user.email,
             user_name = user.user_name,
-            full_name = user.full_name,
             is_active = user.is_active,
             hashed_password = get_password_hash(user.password)
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    
+    def create_google_user(self, db: Session, user: UserCreateGoogle) -> UserRead:
+        db_user = User(
+            email = user.email,
+            user_name = user.user_name,
+            is_active = user.is_active,
+            auth_provider = user.auth_provider,
+            provider_id = user.provider_id
         )
         db.add(db_user)
         db.commit()

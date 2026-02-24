@@ -7,7 +7,6 @@ from uuid import UUID
 class UserBase(BaseModel):
     email: EmailStr
     user_name: str
-    full_name: Optional[str] = None
     is_active: bool = True
     
 
@@ -20,6 +19,14 @@ class UserCreate(UserBase):
         if len(v) < 6:
             raise ValueError('Le mot de passe doit contenir au moins 6 caractères')
         return v
+    
+ # Pour créer un utilisateur via Google OAuth
+class UserCreateGoogle(BaseModel):
+    email: EmailStr
+    user_name: str
+    auth_provider: str = "google"
+    provider_id: str
+    is_active: bool = True   
     
 
 # Pour mettre à jour un utilisateur
@@ -44,5 +51,3 @@ class UserForChangePassword(BaseModel):
     old_password: str
     new_password: str       
 
-class UserInDB(UserRead):
-    hashed_password: str

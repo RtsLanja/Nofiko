@@ -88,6 +88,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optiona
         if user_id is None:
             raise HTTPException(status_code=401, detail="Token invalide")
         user = db.query(User).filter(User.id == user_id).first()
+        print(f"user = {user}")
         return user
     except HTTPException as e:
         raise e
