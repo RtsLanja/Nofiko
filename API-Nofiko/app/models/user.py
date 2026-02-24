@@ -15,7 +15,6 @@ class User(Base):
         index=True,
         nullable=False,
     )
-    full_name = Column(String(255), index=True)
     user_name = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
 
@@ -33,3 +32,5 @@ class User(Base):
     provider_id = Column(String(255), unique=True, index=True, nullable=True)
 
     alert_job = relationship("AlertJob", back_populates="user")
+    
+    profile = relationship("Profile", back_populates="user", uselist=False)

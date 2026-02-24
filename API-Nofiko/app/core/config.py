@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     app_name: str = "Nofiko"
     debug: bool = True
 
+    # Google OAuth
+    google_client_id: str
+    google_client_secret: str
+    gemeni_api_key: str
+    groq_api_key: str
 
     class Config:
         env_file = ".env.production" if os.getenv("ENV_STATE") == "prod" else ".env.local"
