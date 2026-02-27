@@ -24,6 +24,12 @@ class ProfileCRUD:
         db.refresh(db_profile)
         return db_profile
 
+    def get_all_profiles(self, db: Session) -> list[ProfileRead]:
+        res = db.query(Profile).all()
+        for profile in res:
+            profile.user = UserCRUD().get_user(db, profile.user_id)
+        return res
+
     def get_profile(self,db: Session, profile_id) -> Optional[ProfileRead]:
         res = db.query(Profile).filter(Profile.id == profile_id).first()
         res.user = UserCRUD().get_user(db, res.user_id) if res else None

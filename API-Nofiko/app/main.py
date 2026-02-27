@@ -5,15 +5,20 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.profile import router as profile_router
 from starlette.middleware.sessions import SessionMiddleware
 from app.models.user import User  
-from app.models.alert_job import AlertJob
 from app.models.job import JobOffer
 from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
+from app.models.match import JobMatch
+from scraper.runner import start_scheduler
 
 
 from app.core.config import settings
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    start_scheduler()
 
 @app.get("/")
 def read_root():

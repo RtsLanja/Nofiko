@@ -11,7 +11,6 @@ load_dotenv()
 from app.db.base import Base 
 from app.models.user import User
 from app.models.job import JobOffer
-from app.models.alert_job import AlertJob   
 from app.models.profile import Profile
 
 config = context.config

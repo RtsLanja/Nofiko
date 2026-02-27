@@ -1,6 +1,5 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
 from uuid import UUID
 
 from .user import UserRead

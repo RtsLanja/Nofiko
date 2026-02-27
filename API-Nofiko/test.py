@@ -1,20 +1,12 @@
-import google.generativeai as genai
-from app.core.config import settings
+import asyncio
+from app.services.matcher import run_global_matching
+from app.db.database import SessionLocal
 
-genai.configure(api_key=settings.gemeni_api_key)
-
-print("--- DIAGNOSTIC DES MODÈLES ---")
-try:
-    models = genai.list_models()
-    found_flash = False
-    for m in models:
-        print(f"Modèle trouvé : {m.name}")
-        if "gemini-1.5-flash" in m.name:
-            found_flash = True
-    
-    if found_flash:
-        print("\n✅ Le modèle Flash est bien présent dans votre liste.")
-    else:
-        print("\n❌ Le modèle Flash est INTROUVABLE pour cette clé.")
-except Exception as e:
-    print(f"❌ Erreur lors du listing : {e}")
+if __name__ == "__main__":
+    try:
+        # asyncio.run initialise la boucle et execute la coroutine
+        asyncio.run(run_global_matching(SessionLocal()))
+    except KeyboardInterrupt:
+        print("\n🛑 Match interrompu par l'utilisateur.")
+    except Exception as e:
+        print(f"💥 Erreur lors de l'exécution : {e}")

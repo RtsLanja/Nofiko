@@ -30,7 +30,5 @@ class User(Base):
 
     # L'ID unique que Google nous envoie (le "sub" dans le token Google)
     provider_id = Column(String(255), unique=True, index=True, nullable=True)
-
-    alert_job = relationship("AlertJob", back_populates="user")
     
     profile = relationship("Profile", back_populates="user", uselist=False)
