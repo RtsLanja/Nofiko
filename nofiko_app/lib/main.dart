@@ -9,6 +9,8 @@ import './core/network/api_client.dart';
 import './core/network/dio_interceptor.dart';
 import './services/auth_service.dart';
 import './services/profile_service.dart';
+import './services/job_matched_service.dart';
+import './providers/job_matched_provider.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -30,6 +32,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(
           create: (_) => ProfileProvider(ProfileService(dio)),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => JobMatchedProvider(JobMatchedService(dio)),
         ),
       ],
       child: const MaterialApp(
