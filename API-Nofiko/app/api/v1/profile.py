@@ -21,12 +21,22 @@ from app.services.ai_api import transform_cv_to_data
 router = APIRouter()
 
 
+@router.get("/", response_model=ProfileRead)
+async def get_my_profile(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    profile = profileCrud.get_profile_by_user_id(db, current_user.id)
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur non trouvé")
+    return profile
+
 @router.post("/upload-cv")
-async def upload_cv(file: UploadFile = File(...), current_user : User = Depends(get_current_user) , db: Session = Depends(get_db)):
+async def upload_cv(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     if current_user is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Non authentifié"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié"
         )
     text, file_path = await process_cv(file)
     print(f"current_user = {current_user}")
@@ -35,7 +45,13 @@ async def upload_cv(file: UploadFile = File(...), current_user : User = Depends(
         ai_data = await transform_cv_to_data(text)
     except Exception as e:
         print(f"Error analyzing CV with AI API: {e}")
-        ai_data = {"name": "Inconnu", "xp": 0, "level": "Junior", "skills": [], "location": ""}
+        ai_data = {
+            "name": "Inconnu",
+            "xp": 0,
+            "level": "Junior",
+            "skills": [],
+            "location": "",
+        }
 
     new_profile = ProfileCreate(
         name=ai_data.get("name", "Inconnu"),
@@ -44,7 +60,7 @@ async def upload_cv(file: UploadFile = File(...), current_user : User = Depends(
         skills=ai_data.get("skills", []),
         location=ai_data.get("location", "Inconnu"),
         raw_cv_text=text,
-        cv_path=file_path
+        cv_path=file_path,
     )
     check_profile = profileCrud.get_profile_by_user_id(db, current_user.id)
     if check_profile:
@@ -70,7 +86,8 @@ def update_profile(
         )
     return profile
 
-@router.delete("/" , status_code=status.HTTP_204_NO_CONTENT)
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_profile(
     db: Session = Depends(get_db), current_user=Depends(get_current_user)
 ):

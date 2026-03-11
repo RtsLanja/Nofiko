@@ -3,7 +3,7 @@ from typing import Optional
 
 from app.models.profile import Profile
 from app.schemas.profile import ProfileCreate, ProfileUpdate, ProfileRead
-from.user import UserCRUD
+from.user import userCrud
 
 
 class ProfileCRUD:
@@ -27,16 +27,19 @@ class ProfileCRUD:
     def get_all_profiles(self, db: Session) -> list[ProfileRead]:
         res = db.query(Profile).all()
         for profile in res:
-            profile.user = UserCRUD().get_user(db, profile.user_id)
+            profile.user = userCrud.get_user(db, profile.user_id)
         return res
 
     def get_profile(self,db: Session, profile_id) -> Optional[ProfileRead]:
         res = db.query(Profile).filter(Profile.id == profile_id).first()
-        res.user = UserCRUD().get_user(db, res.user_id) if res else None
+        if res:
+            res.user = userCrud.get_user(db, res.user_id) if res else None
         return res
     
-    def get_profile_by_user_id(self, db: Session, user_id) -> Optional[Profile]:
+    def get_profile_by_user_id(self, db: Session, user_id) -> Optional[ProfileRead]:
         res = db.query(Profile).filter(Profile.user_id == user_id).first()
+        if res:
+            res.user = userCrud.get_user(db, res.user_id) if res else None
         return res
 
     def update_profile(self, db: Session, profile_id, profile_in: ProfileUpdate) -> Optional[ProfileRead]:

@@ -31,7 +31,7 @@ class JobOfferCRUD:
     def get_job_offer_by_fingerprint(self, db: Session, fingerprint: str) -> Optional[JobRead]:
         return db.query(JobOffer).filter(JobOffer.fingerprint == fingerprint).first()
     
-    def get_all_recent_job_offers(self, db: Session, limit: int = 100) -> list[JobRead]:
+    def get_all_recent_job_offers(self, db: Session, limit: int = 200) -> list[JobRead]:
         return db.query(JobOffer).order_by(JobOffer.posted_at.desc()).limit(limit).all()
 
 jobOfferCrud = JobOfferCRUD()    

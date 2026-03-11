@@ -14,7 +14,7 @@ async def run_global_matching(db: Session):
     """Lance le matching pour tous les profils et toutes les offres d'emploi récentes"""
     print(f"Running global matching at {datetime.utcnow()}")
     profiles = profileCrud.get_all_profiles(db)
-    recent_jobs = jobOfferCrud.get_all_recent_job_offers(db, limit=100)
+    recent_jobs = jobOfferCrud.get_all_recent_job_offers(db)
     
     for profile in profiles:
         candidate_jobs = pre_filter_jobs(profile, recent_jobs)
