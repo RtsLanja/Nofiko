@@ -74,6 +74,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optiona
     token = request.cookies.get("access_token")
 
     if not token:
+        token = request.headers.get("Authorization")
+    
+    if not token:
         raise HTTPException(
             status_code=401, detail="Cookie d'authentification manquant"
         )

@@ -3,13 +3,16 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
 from authlib.integrations.starlette_client import OAuth
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
 
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.db.database import get_db
 from app.crud.user import userCrud
 from app.core.config import settings
-from app.schemas.user import UserCreateGoogle
+from app.schemas.user import UserCreateGoogle , UserCreate
 from app.crud.refresh_token import refreshTokenCrud
+from app.schemas.google_auth import GoogleMobileToken
 
 router = APIRouter()
 
@@ -41,15 +44,68 @@ def login_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants invalides"
         )
 
-    send_all_token(user.id, response, db,request)
+    tokens = send_all_token(user.id, response, db, request)
 
-    return {"message": "Connexion réussie"}
+    return {"message": "Connexion réussie", "tokens": tokens}
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register_user(user: UserCreate, response: Response, db: Session = Depends(get_db)):
+    """Crée un nouvel utilisateur.
+    """
+    existing_user = userCrud.get_user_by_email(db, user.email)
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email déjà utilisé")
+
+    new_user = userCrud.create_user(db, user)
+    if not new_user:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erreur lors de la création du compte")
+
+    tokens = send_all_token(new_user.id, response, db, None)
+
+    return {"message": "Compte créé avec succès", "user": new_user, "tokens": tokens}
 
 @router.get("/login/google")
 async def login_google(request: Request):
     """Redirige l'utilisateur vers la page de connexion Google."""
     redirect_uri = request.url_for('auth_google') 
     return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@router.post("/login/google/mobile")
+async def auth_google_mobile(
+    body: GoogleMobileToken,  # { "id_token": "xxx" }
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """Reçoit l'idToken depuis Flutter mobile, vérifie et connecte."""
+    try:
+        # Vérifie le token auprès de Google
+        user_info = id_token.verify_oauth2_token(
+            body.id_token,
+            grequests.Request(),
+            settings.google_client_id
+        )
+
+        email = user_info.get("email")
+        user  = userCrud.get_user_by_email(db, email)
+
+        if user:
+            tokens = send_all_token(user.id, response, db)
+            return {"message": "Connexion Google réussie", "tokens": tokens}
+        else:
+            new_user = UserCreateGoogle(
+                email=email,
+                user_name=user_info.get("name"),
+                provider_id=user_info.get("sub")
+            )
+            user_created = userCrud.create_google_user(db, new_user)
+            
+            if not user_created:
+                raise HTTPException(status_code=500, detail="Erreur lors de la création du compte Google")
+            tokens = send_all_token(user_created.id, response, db)
+            return {"message": "Compte créé", "user": user_created, "tokens": tokens}
+
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Token Google invalide")
 
 @router.get("/google")
 async def auth_google(request: Request, response: Response, db: Session = Depends(get_db)):
@@ -62,10 +118,11 @@ async def auth_google(request: Request, response: Response, db: Session = Depend
         user = userCrud.get_user_by_email(db, user_info.get("email"))
         
         if user :
-            send_all_token(user.id, response, db, request)
+            tokens = send_all_token(user.id, response, db, request)
             return {
                 "message": "Connexion Google réussie",
-                "user": user
+                "user": user,
+                "tokens": tokens
             }
         else :
             new_user = UserCreateGoogle(
@@ -75,10 +132,11 @@ async def auth_google(request: Request, response: Response, db: Session = Depend
             )
             user_created = userCrud.create_google_user(db, new_user)
             if user_created:
-                send_all_token(user_created.id, response, db, request)
+                tokens = send_all_token(user_created.id, response, db, request)
                 return {
                     "message": "Compte Google créé et connecté avec succès",
-                    "user": user_created
+                    "user": user_created,
+                    "tokens": tokens
                 }
             else:
                 raise HTTPException(status_code=500, detail="Erreur lors de la création du compte Google")
@@ -87,10 +145,17 @@ async def auth_google(request: Request, response: Response, db: Session = Depend
         raise HTTPException(status_code=400, detail=f"Erreur d'authentification : {str(e)}")
 
 @router.post("/logout")
-async def logout(request: Request, response: Response, db: Session = Depends(get_db)):
-    token = request.cookies.get("refresh_token")
-    if token:
-        refreshTokenCrud.revoke_refresh_token(db, token)
+async def logout(request: Request, response: Response, db: Session = Depends(get_db) , refresh_token: str = None):
+    print(f"Refresh_token {refresh_token} reçu pour logout")
+    if refresh_token != None:
+        print(f"refresh_token reçu pour logout: {refresh_token}")
+        refreshTokenCrud.revoke_refresh_token(db, refresh_token)
+    else:    
+        token = request.cookies.get("refresh_token")
+        if token:
+            refreshTokenCrud.revoke_refresh_token(db, token)
+        else : 
+            raise HTTPException(status_code=400, detail="Aucun token de rafraîchissement trouvé pour la déconnexion")    
 
     response.set_cookie(key="access_token", value="", max_age=0, expires=0, httponly=True, samesite="lax", secure=False)
     response.set_cookie(key="refresh_token", value="", max_age=0, expires=0, httponly=True, path="/", samesite="lax", secure=False)
@@ -101,8 +166,11 @@ async def logout(request: Request, response: Response, db: Session = Depends(get
 
 
 @router.post("/refresh")
-def refresh_access_token(request: Request, response: Response , db: Session = Depends(get_db)):
-    refresh_token = request.cookies.get("refresh_token")
+def refresh_access_token(request: Request, response: Response , db: Session = Depends(get_db), refresher: str = None):
+    if refresher != None:
+        refresh_token = refresher
+    else:    
+        refresh_token = request.cookies.get("refresh_token")
     print((f"refresh_token: {refresh_token}"))
 
     if not refresh_token:
@@ -124,9 +192,9 @@ def refresh_access_token(request: Request, response: Response , db: Session = De
         if not refreshTokenCrud.is_refresh_token_valid(db, refresh_token):
             raise HTTPException(status_code=401, detail="Token de rafraîchissement invalide ou révoqué")
 
-        send_all_token(user_id, response, db, request)
+        tokens = send_all_token(user_id, response, db, request)
 
-        return {"status": "success", "message": "Token rafraîchi"}
+        return {"status": "success", "message": "Token rafraîchi", "tokens": tokens}
 
     except JWTError:
         print(f"Erreur de décodage : {e}")
@@ -163,3 +231,5 @@ def send_all_token(user_id, response, db: Session, request: Request = None):
         samesite="lax",
         secure=False,
     )
+
+    return {"access_token": access_token, "refresh_token": refresh_token}

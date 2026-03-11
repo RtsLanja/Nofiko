@@ -11,7 +11,7 @@ class ProfileBase(BaseModel):
     skills: List[str]
     location: str
     raw_cv_text: Optional[str] = None
-    cv_path: str
+    cv_path: Optional[str] =None
 
 class ProfileCreate(ProfileBase):
     pass
