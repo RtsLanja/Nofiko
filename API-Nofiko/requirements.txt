@@ -39,3 +39,4 @@ APScheduler
 # Google API
 google-api-python-client
 google-auth
+itsdangerous
