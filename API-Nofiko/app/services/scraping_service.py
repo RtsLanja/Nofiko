@@ -42,14 +42,12 @@ async def scrape_listing(page, page_number: int):
     results = []
 
     for job in jobs:
-        title = await job.query_selector("h3 strong")
         link = await job.query_selector("a.description")
         posted_at = await parse_posted_at(job)
         if posted_at and posted_at > datetime.now() - timedelta(days=30):
-            fp = hashlib.sha256(f"{link}{title}".encode()).hexdigest()
+            fp = hashlib.sha256(f"{link}".encode()).hexdigest()
             results.append(
                 {
-                    "title": (await title.inner_text()).strip(),
                     "link": await link.get_attribute("href"),
                     "posted_at": posted_at,
                     "fingerprint": fp,
@@ -141,7 +139,7 @@ async def run_scraper():
                         continue
 
                     try:
-                        print(f"Nouveau poste trouvé : {job['title']}")
+                        print(f"Nouveau poste trouvé")
 
                         # simule un comportement humain
                         await asyncio.sleep(random.uniform(1.5, 3.0))
@@ -156,7 +154,7 @@ async def run_scraper():
                         if analysis:
                             job_offer_create = JobCreate(
                                 fingerprint=job["fingerprint"],
-                                title=job["title"],
+                                title=analysis.get["title"],
                                 company=analysis.get("company", "Anonyme"),
                                 location=analysis.get("location", "Non spécifiée"),
                                 min_xp=analysis.get("min_xp", 0),
