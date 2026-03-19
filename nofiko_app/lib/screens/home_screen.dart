@@ -7,6 +7,7 @@ import '../providers/job_matched_provider.dart';
 import '../models/profile.dart';
 import './upload_cv_screen.dart';
 import '../widgets/job_match_card.dart';
+import 'job_detail.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -128,8 +129,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         final match = jobProvider.filteredMatches[index];
                         return JobMatchCard(
                           match: match,
-                          onTap: () {
-                            // TODO: naviguer vers le détail
+                          onTap: () => {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => JobDetailScreen(jobDetail: match.jobOffer),
+                              ),
+                            ),
                           },
                         );
                       }, childCount: jobProvider.filteredMatches.length),

@@ -28,7 +28,7 @@ Ton rôle est d'extraire des informations structurées à partir d'un texte brut
     - 'Confirmé' (si min_xp entre 3 et 6)
     - 'Senior' (si min_xp >= 7)
 - 'skills_required': Liste de 5 à 10 mots-clés techniques (outils, langages, frameworks).
-- 'description': Un résumé de 2-3 phrases mettant en avant les responsabilités clés et les exigences du poste.
+- 'description': Un résumé de 2-3 phrases mettant en avant les responsabilités clés et les exigences du poste. Assure toi que seulement les éléments les plus pertinents soient inclus, en évitant les détails comme le titre du poste ou le nom de l'entreprise qui sont déjà capturés dans d'autres champs.
 
 ### LOGIQUE DE CALCUL :
 Si les années d'expérience ne sont pas explicites mais qu'on demande 'débutant', min_xp = 0.
