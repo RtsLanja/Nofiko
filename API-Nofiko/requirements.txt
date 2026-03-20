@@ -14,9 +14,9 @@ psycopg2-binary
 
 # Auth & Sécurité
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt==4.0.1
+passlib[bcrypt]==1.7.4
 Authlib
-bcrypt
 
 # IA
 google-generativeai
