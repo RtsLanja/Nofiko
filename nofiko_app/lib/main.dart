@@ -12,8 +12,9 @@ import './services/profile_service.dart';
 import './services/job_matched_service.dart';
 import './providers/job_matched_provider.dart';
 
+const String env = String.fromEnvironment('ENV', defaultValue: 'dev');
 void main() async {
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: ".env.$env");
   final apiClient = ApiClient();
   final authService = AuthService();
 
