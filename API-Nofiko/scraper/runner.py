@@ -11,13 +11,14 @@ def start_scheduler():
 
     
     scheduler.add_job(
-        lambda: asyncio.create_task(run_scraper()),
+        run_scraper,  
         trigger="cron",
         hour=15,
         minute=0
     )
+
     scheduler.add_job(
-        lambda: asyncio.create_task(run_global_matching(SessionLocal())),
+        lambda: run_global_matching(SessionLocal()),
         trigger="cron",
         hour=16,
         minute=0

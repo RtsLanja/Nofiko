@@ -43,8 +43,10 @@ async def scrape_listing(page, page_number: int):
 
     for job in jobs:
         link = await job.query_selector("a.description")
+        print(f"Scraping job listing: {await link.get_attribute('href')}")
         posted_at = await parse_posted_at(job)
         if posted_at and posted_at > datetime.now() - timedelta(days=30):
+            print(f"Job posted at {posted_at} is within the last 30 days.")
             fp = hashlib.sha256(f"{link}".encode()).hexdigest()
             results.append(
                 {
@@ -53,6 +55,7 @@ async def scrape_listing(page, page_number: int):
                     "fingerprint": fp,
                 }
             )
+    print(f"Found {len(results)} job listings on page {page_number} posted in the last 30 days.")
     return results
 
 
@@ -81,7 +84,7 @@ async def parse_posted_at(item_element):
         month_text = await month_el.inner_text()
         year_text = await year_el.inner_text()
 
-        month_clean = month_text.replace(".", "").strip()
+        month_clean = month_text.replace(".", "").strip()[:3].capitalize()
         month = MONTHS_FR.get(month_clean, 1)
         print(
             f"Parsing date: {day_text} {month_text} {year_text} -> {day_text.strip()}-{month}-{year_text.strip()}"
@@ -135,26 +138,28 @@ async def run_scraper():
                     )
 
                     if job_in_db:
-                        print(f"Skip : {job['title']} (Déjà en base)")
+                        print(f"Skip : {job['link']} , posted : {job['posted_at']} (Déjà en base)")
                         continue
 
                     try:
-                        print(f"Nouveau poste trouvé")
+                        print(f"Nouveau poste trouvé : {job['link']} , posted : {job['posted_at']}")
 
                         # simule un comportement humain
                         await asyncio.sleep(random.uniform(1.5, 3.0))
-
+                        print(f"Analyse de l'offre :analyzing: {job['link']}")
                         details = await scrape_detail(page, job["link"])
+                        
 
                         if not details.get("raw_content"):
                             continue
 
                         analysis = await analyze_job_with_groq(details["raw_content"])
+                        print(f"Analyse terminée pour : {job['link']} -> {analysis.get('title', 'Titre non trouvé')}")
 
                         if analysis:
                             job_offer_create = JobCreate(
                                 fingerprint=job["fingerprint"],
-                                title=analysis.get["title"],
+                                title=analysis.get("title", "Titre non trouvé"),
                                 company=analysis.get("company", "Anonyme"),
                                 location=analysis.get("location", "Non spécifiée"),
                                 min_xp=analysis.get("min_xp", 0),
@@ -169,10 +174,10 @@ async def run_scraper():
                             jobOfferCrud.create_job_offer(
                                 db=db, job_offer=job_offer_create
                             )
-                            print(f"Offre enregistrée avec succès : {job['title']}")
+                            print(f"Offre enregistrée avec succès : {analysis.get('title', 'Titre non trouvé')}")
 
                     except Exception as e:
-                        print(f"Erreur sur l'offre '{job['title']}': {e}")
+                        print(f"Erreur sur l'offre '{analysis.get('title' , 'Titre non trouvé')}': {e}")
                         continue
 
                 page_number += 1
